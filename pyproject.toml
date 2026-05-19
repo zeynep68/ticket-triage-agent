@@ -3,13 +3,22 @@ name = "triage-agent"
 version = "0.1.0"
 description = "Insurance support ticket triage agent"
 requires-python = ">=3.11"
-dependencies = []
+dependencies = [
+    "pydantic>=2.13.4",
+    "pandas>=2.0",
+    "kagglehub>=0.3",
+    "typer>=0.12",
+    "pyarrow>=15.0",
+]
 
 [project.optional-dependencies]
 dev = [
     "pytest>=8.0",
     "ruff>=0.5",
 ]
+
+[project.scripts]
+prepare-data = "triage_agent.data.prepare:main"
 
 [build-system]
 requires = ["hatchling"]
