@@ -4,7 +4,9 @@ from pathlib import Path
 import kagglehub
 import typer
 
+from triage_agent.data.constants import TARGET_LANGUAGES
 from triage_agent.data.loader import load_all_csvs
+from triage_agent.data.preprocess import apply_preprocessing, filter_languages
 from triage_agent.logging_config import setup_logging
 
 setup_logging()
@@ -24,9 +26,7 @@ def prepare(
     out.parent.mkdir(parents=True, exist_ok=True)
     rejected_out.parent.mkdir(parents=True, exist_ok=True)
 
-    raw_dir = Path(
-        kagglehub.dataset_download("tobiasbueck/multilingual-customer-support-tickets")
-    )
+    raw_dir = Path(kagglehub.dataset_download("tobiasbueck/multilingual-customer-support-tickets"))
     log.info("Downloaded the Kaggle dataset to %s.", raw_dir)
 
     valid_df, rejected_df = load_all_csvs(raw_dir)
@@ -35,6 +35,15 @@ def prepare(
         len(valid_df),
         len(rejected_df),
     )
+
+    rejected_df.to_csv(rejected_out, index=False)
+    log.info("Wrote rejected rows to %s for auditing.", rejected_out)
+
+    valid_df = filter_languages(valid_df, TARGET_LANGUAGES)
+    log.info("Filtered to target languages, %d tickets remain.", len(valid_df))
+
+    valid_df = apply_preprocessing(valid_df)
+    log.info("Applied text preprocessing, %d tickets remain.", len(valid_df))
 
 
 def main() -> None:
