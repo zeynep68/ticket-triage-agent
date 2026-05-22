@@ -7,6 +7,7 @@ import typer
 from triage_agent.data.constants import TARGET_LANGUAGES
 from triage_agent.data.loader import load_all_csvs
 from triage_agent.data.preprocess import apply_preprocessing, filter_languages
+from triage_agent.data.sampling import stratified_sample
 from triage_agent.logging_config import setup_logging
 
 setup_logging()
@@ -44,6 +45,30 @@ def prepare(
 
     valid_df = apply_preprocessing(valid_df)
     log.info("Applied text preprocessing, %d tickets remain.", len(valid_df))
+
+    sample_df = stratified_sample(valid_df, n=n_samples, stratify_by="queue", seed=seed)
+    sample_df.to_parquet(out, index=False)
+    log.info("Wrote final sample of %d tickets to %s.", len(sample_df), out)
+
+    log.info(
+        "Language distribution in the sample: %s.",
+        sample_df["language"].value_counts().to_dict(),
+    )
+    log.info(
+        "Version distribution in the sample: %s.",
+        sample_df["version"].value_counts().to_dict(),
+    )
+    if "queue" in sample_df.columns:
+        log.info(
+            "Top 10 queues in the sample: %s.",
+            sample_df["queue"].value_counts().head(10).to_dict(),
+        )
+    log.info(
+        "Text length statistics: mean=%.0f characters, median=%.0f, max=%d.",
+        sample_df["text_length"].mean(),
+        sample_df["text_length"].median(),
+        sample_df["text_length"].max(),
+    )
 
 
 def main() -> None:
