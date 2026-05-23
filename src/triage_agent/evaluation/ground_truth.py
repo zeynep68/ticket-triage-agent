@@ -1,6 +1,6 @@
 """Maps the dataset's `queue` and `priority` fields onto our taxonomies.
 
-These mappings exist only at evaluation time. The agent never sees them — they
+These mappings exist only at evaluation time. The agent never sees them - they
 are used to compare predictions against the dataset's labels.
 
 The dataset uses ~30 queue categories spanning many domains (IT, billing, arts,
@@ -8,6 +8,7 @@ home & garden, etc.). Our taxonomy is 6 topics applicable to a customer-support
 context (Technical, Billing, Product, Returns, Outage, Other). Queues without
 an obvious analog map to Other.
 """
+
 import pandas as pd
 
 from triage_agent.schemas import TopicLiteral, UrgencyLiteral
@@ -43,7 +44,7 @@ def map_queue_to_topic(queue: str | None) -> TopicLiteral | None:
     """Map a dataset queue value to our 6-topic taxonomy.
 
     Returns None if the queue itself is None (missing data). Returns "Other"
-    for queues that exist but do not map to any specific topic — that matches
+    for queues that exist but do not map to any specific topic - that matches
     how the agent classifies non-matching tickets.
     """
     if queue is None or (isinstance(queue, float) and pd.isna(queue)):

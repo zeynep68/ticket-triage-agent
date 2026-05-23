@@ -1,4 +1,4 @@
-"""Tests for the dataset queue/priority → our taxonomy mapping."""
+"""Tests for the dataset queue/priority -> our taxonomy mapping."""
 
 import pytest
 
