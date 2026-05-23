@@ -18,11 +18,11 @@ def test_v3_text_column_aliased_to_body():
         [{"Subject": "Help", "text": "Account locked", "language": "en"}],
         "dataset-tickets-multi-lang3-4k.csv",
     )
-    tickets, errors = load_single_csv(path)
-    assert len(tickets) == 1
-    assert tickets[0].body == "Account locked"
-    assert tickets[0].subject == "Help"
-    assert tickets[0].version == "v3"
+    result = load_single_csv(path)
+    assert len(result.tickets) == 1
+    assert result.tickets[0].body == "Account locked"
+    assert result.tickets[0].subject == "Help"
+    assert result.tickets[0].version == "v3"
 
 
 def test_uppercase_columns_are_normalized():
@@ -30,10 +30,10 @@ def test_uppercase_columns_are_normalized():
         [{"SUBJECT": "Help", "BODY": "Account locked", "LANGUAGE": "en"}],
         "dataset-tickets-multi-lang-4-20k.csv",
     )
-    tickets, errors = load_single_csv(path)
-    assert len(tickets) == 1
-    assert tickets[0].subject == "Help"
-    assert tickets[0].body == "Account locked"
+    result = load_single_csv(path)
+    assert len(result.tickets) == 1
+    assert result.tickets[0].subject == "Help"
+    assert result.tickets[0].body == "Account locked"
 
 
 def test_german_only_file_gets_language_hardcoded():
@@ -41,10 +41,10 @@ def test_german_only_file_gets_language_hardcoded():
         [{"subject": "Hilfe", "body": "Mein Konto ist gesperrt"}],
         "dataset-tickets-german_normalized.csv",
     )
-    tickets, errors = load_single_csv(path)
-    assert len(tickets) == 1
-    assert tickets[0].language == "de"
-    assert tickets[0].version == "de_norm"
+    result = load_single_csv(path)
+    assert len(result.tickets) == 1
+    assert result.tickets[0].language == "de"
+    assert result.tickets[0].version == "de_norm"
 
 
 def test_both_subject_and_body_empty_is_rejected():
@@ -52,10 +52,10 @@ def test_both_subject_and_body_empty_is_rejected():
         [{"subject": "", "body": "", "language": "en"}],
         "dataset-tickets-multi-lang-4-20k.csv",
     )
-    tickets, errors = load_single_csv(path)
-    assert len(tickets) == 0
-    assert len(errors) == 1
-    assert "cannot both be empty" in errors[0]["error"].lower()
+    result = load_single_csv(path)
+    assert len(result.tickets) == 0
+    assert len(result.rejected_rows) == 1
+    assert "cannot both be empty" in result.rejected_rows[0]["error"].lower()
 
 
 def test_empty_body_with_subject_set_is_kept():
@@ -63,10 +63,10 @@ def test_empty_body_with_subject_set_is_kept():
         [{"subject": "Help me", "body": "", "language": "en"}],
         "dataset-tickets-multi-lang-4-20k.csv",
     )
-    tickets, errors = load_single_csv(path)
-    assert len(tickets) == 1
-    assert tickets[0].subject == "Help me"
-    assert tickets[0].body == ""
+    result = load_single_csv(path)
+    assert len(result.tickets) == 1
+    assert result.tickets[0].subject == "Help me"
+    assert result.tickets[0].body == ""
 
 
 def test_empty_subject_with_body_set_is_kept():
@@ -74,10 +74,10 @@ def test_empty_subject_with_body_set_is_kept():
         [{"subject": "", "body": "Mein Auto wurde gestohlen", "language": "de"}],
         "dataset-tickets-german_normalized.csv",
     )
-    tickets, errors = load_single_csv(path)
-    assert len(tickets) == 1
-    assert tickets[0].subject == ""
-    assert tickets[0].body == "Mein Auto wurde gestohlen"
+    result = load_single_csv(path)
+    assert len(result.tickets) == 1
+    assert result.tickets[0].subject == ""
+    assert result.tickets[0].body == "Mein Auto wurde gestohlen"
 
 
 def test_language_is_normalized_to_two_letter_lowercase():
@@ -85,8 +85,8 @@ def test_language_is_normalized_to_two_letter_lowercase():
         [{"subject": "Hi", "body": "Hello", "language": "EN-US"}],
         "dataset-tickets-multi-lang-4-20k.csv",
     )
-    tickets, errors = load_single_csv(path)
-    assert tickets[0].language == "en"
+    result = load_single_csv(path)
+    assert result.tickets[0].language == "en"
 
 
 def test_dedup_keeps_higher_version():
