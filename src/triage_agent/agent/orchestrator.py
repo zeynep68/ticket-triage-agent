@@ -14,18 +14,18 @@ SNIPPET_LENGTH = 200
 def _fallback_decision(topic: str, urgency: str) -> AgentDecision:
     """Used when the LLM cannot produce a valid decision.
 
-    Conservative: high-urgency claims escalate, very short or unclassified text
+    Conservative: high-urgency tickets escalate, very short or unclassified text
     asks for clarification, everything else forwards.
     """
     if urgency == "high":
         return AgentDecision(
             action="ESCALATE",
-            reasoning="LLM unavailable; high urgency triggers conservative escalation.",
+            reasoning="Fallback decision (LLM unavailable): high urgency triggers conservative escalation.",
         )
     if topic == "Other":
         return AgentDecision(
             action="CLARIFY",
-            reasoning="LLM unavailable; ticket did not match any topic clearly.",
+            reasoning="Fallback decision (LLM unavailable): ticket did not match any specific topic.",
             clarification_questions=[
                 "Which product or service does this concern?",
                 "What specifically is the issue you are facing?",
@@ -33,7 +33,7 @@ def _fallback_decision(topic: str, urgency: str) -> AgentDecision:
         )
     return AgentDecision(
         action="FORWARD",
-        reasoning="LLM unavailable; routing by topic as fallback.",
+        reasoning="Fallback decision (LLM unavailable): routing by topic.",
     )
 
 
