@@ -9,6 +9,7 @@ Run this after `prepare-data` to:
 Usage:
     uv run python -m triage_agent.evaluation.inspect_labels
 """
+
 import logging
 from collections import defaultdict
 from pathlib import Path
@@ -30,7 +31,7 @@ log = logging.getLogger(__name__)
 
 app = typer.Typer(add_completion=False)
 
-# Display order — derived from the TopicLiteral type so adding a topic in
+# Display order - derived from the TopicLiteral type so adding a topic in
 # schemas.py automatically extends the inspection output.
 TOPIC_ORDER = list(get_args(TopicLiteral))
 URGENCY_ORDER = ["high", "medium", "low"]  # display order, severe to mild
@@ -57,7 +58,7 @@ def _section_header(title: str) -> None:
 
 
 def _inspect_priorities(df: pd.DataFrame) -> None:
-    _section_header("PRIORITIES IN DATA → MAPPED URGENCY")
+    _section_header("PRIORITIES IN DATA -> MAPPED URGENCY")
 
     if "priority" not in df.columns:
         log.warning("No 'priority' column in the sample.")
@@ -67,8 +68,8 @@ def _inspect_priorities(df: pd.DataFrame) -> None:
     print(f"\n{len(counts)} distinct priority values across {len(df):,} tickets.\n")
 
     # Per-value detail
-    print(f"  {'dataset value':<14}  {'→':^3}  {'mapped to':<10}   tickets")
-    print(f"  {'-' * 14}  {'-' * 3}  {'-' * 10}   {'-' * 7}")
+    print(f"  {'dataset value':<14}  ->  {'mapped to':<10}   tickets")
+    print(f"  {'-' * 14}  --  {'-' * 10}   {'-' * 7}")
 
     unmapped = []
     summary: dict[str, int] = defaultdict(int)
@@ -87,10 +88,10 @@ def _inspect_priorities(df: pd.DataFrame) -> None:
             summary[mapped] += count
 
         display_value = "(NaN)" if pd.isna(value) else str(value)
-        print(f"  {display_value:<14}  {'→':^3}  {label:<10}   {count:>7,}")
+        print(f"  {display_value:<14}  ->  {label:<10}   {count:>7,}")
 
     # Summary by mapped urgency
-    print(f"\n  After mapping, tickets per urgency level:")
+    print("\n  After mapping, tickets per urgency level:")
     total = sum(summary.values())
     for urg in URGENCY_ORDER:
         n = summary.get(urg, 0)
@@ -98,13 +99,13 @@ def _inspect_priorities(df: pd.DataFrame) -> None:
         print(f"    {urg:<8}  {n:>7,}  ({pct:5.1f}%)")
 
     if unmapped:
-        print(f"\n  ⚠ Unmapped priority values (need a rule in map_priority_to_urgency):")
+        print("\n  Unmapped priority values (need a rule in map_priority_to_urgency):")
         for value, count in unmapped:
             print(f"    {value!r:<20}  {count:>7,} tickets")
 
 
 def _inspect_queues(df: pd.DataFrame) -> None:
-    _section_header("QUEUES IN DATA → MAPPED TOPIC")
+    _section_header("QUEUES IN DATA -> MAPPED TOPIC")
 
     if "queue" not in df.columns:
         log.warning("No 'queue' column in the sample.")
@@ -112,7 +113,9 @@ def _inspect_queues(df: pd.DataFrame) -> None:
 
     counts = df["queue"].value_counts(dropna=False)
     print(f"\n{len(counts)} distinct queue values across {len(df):,} tickets.")
-    print(f"{len(QUEUE_TO_TOPIC)} queues have explicit mappings; the rest default to 'Other'.\n")
+    print(
+        f"{len(QUEUE_TO_TOPIC)} queues have explicit mappings; the rest default to 'Other'.\n"
+    )
 
     # Group queues by their mapped topic
     by_topic: dict[str, list[tuple[str, int]]] = defaultdict(list)
@@ -135,11 +138,11 @@ def _inspect_queues(df: pd.DataFrame) -> None:
         if not entries:
             continue
         total = sum(c for _, c in entries)
-        print(f"╭─ {topic}  ({total:,} tickets, {len(entries)} queues)")
+        print(f"-- {topic}  ({total:,} tickets, {len(entries)} queues)")
         for queue, count in entries:
             marker = " " if queue in explicit_keys else "*"
-            print(f"│   {marker} {count:>6,}  {queue}")
-        print(f"╰" + "─" * 60)
+            print(f"   {marker} {count:>6,}  {queue}")
+        print("-" * 60)
         print()
 
     # Summary by topic

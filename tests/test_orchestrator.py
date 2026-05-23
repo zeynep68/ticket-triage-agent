@@ -3,6 +3,7 @@
 These tests verify the orchestrator's composition logic without loading
 embedding models or calling Ollama.
 """
+
 from unittest.mock import patch
 
 from triage_agent.agent import orchestrator
@@ -84,7 +85,9 @@ def test_llm_failure_falls_back():
     with (
         patch.object(orchestrator, "classify_topic", return_value=_topic("Outage")),
         patch.object(orchestrator, "score_urgency", return_value=_urgency("high")),
-        patch.object(orchestrator, "decide", side_effect=LLMFailure("connection refused")),
+        patch.object(
+            orchestrator, "decide", side_effect=LLMFailure("connection refused")
+        ),
     ):
         result = orchestrator.triage("Some urgent outage text.", ticket_id=7)
 

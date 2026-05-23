@@ -10,11 +10,11 @@ MODEL_NAME = "paraphrase-multilingual-MiniLM-L12-v2"
 
 TOPIC_DESCRIPTIONS = {
     "Technical": "Individual user technical problems: login failures, password resets, account lockouts, application errors, single-user bugs, technical issues with industry-specific software.",
-    "Billing":   "Money and account administration: invoice questions, payment failures, billing disputes, subscription changes, credit and refund requests for charges.",
-    "Product":   "Specific product or feature questions: how a feature works, product defects, quality complaints, support for a particular product.",
-    "Returns":   "Returning purchased goods or canceling orders: return shipments, exchanges, refunds for returned items.",
-    "Outage":    "Service-wide problems affecting multiple users: outages, downtime, planned maintenance, infrastructure failures, system unavailability.",
-    "Other":     "Questions that do not fit any of the above: general inquiries, feedback, sales questions, unrelated topics.",
+    "Billing": "Money and account administration: invoice questions, payment failures, billing disputes, subscription changes, credit and refund requests for charges.",
+    "Product": "Specific product or feature questions: how a feature works, product defects, quality complaints, support for a particular product.",
+    "Returns": "Returning purchased goods or canceling orders: return shipments, exchanges, refunds for returned items.",
+    "Outage": "Service-wide problems affecting multiple users: outages, downtime, planned maintenance, infrastructure failures, system unavailability.",
+    "Other": "Questions that do not fit any of the above: general inquiries, feedback, sales questions, unrelated topics.",
 }
 
 assert set(TOPIC_DESCRIPTIONS.keys()) == set(get_args(TopicLiteral)), (
@@ -46,9 +46,7 @@ def classify_topic(text: str) -> TopicResult:
     text_embedding = model.encode(text, convert_to_tensor=True)
     similarities = cos_sim(text_embedding, topic_embeddings)[0].tolist()
 
-    scored = sorted(
-        zip(labels, similarities), key=lambda kv: kv[1], reverse=True
-    )
+    scored = sorted(zip(labels, similarities), key=lambda kv: kv[1], reverse=True)
     top_label, top_score = scored[0]
     second_score = scored[1][1]
     margin = top_score - second_score

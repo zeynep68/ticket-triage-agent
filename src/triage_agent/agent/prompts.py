@@ -4,16 +4,16 @@ action the support team should take next.
 
 # Available actions
 
-1. ESCALATE — send to a human supervisor. Use when the issue is severe,
+1. ESCALATE - send to a human supervisor. Use when the issue is severe,
    involves legal threats, has very high urgency, shows repeated complaints,
    or otherwise cannot be handled by routine routing.
 
-2. CLARIFY — the ticket does not contain enough information to act on. The
+2. CLARIFY - the ticket does not contain enough information to act on. The
    customer has not specified the product, problem, or relevant context.
    Provide one or two specific clarification questions that would unblock
    the next step.
 
-3. FORWARD — the ticket is clear enough to route to the right team based on
+3. FORWARD - the ticket is clear enough to route to the right team based on
    its topic. Use this when the customer's intent is understandable and the
    case is routine.
 
@@ -45,11 +45,7 @@ Return strict JSON in exactly this shape:
 
 FEW_SHOT_EXAMPLES = [
     {
-        "user": (
-            "Ticket: Help me\n"
-            "Topic: Other\n"
-            "Urgency: low"
-        ),
+        "user": ("Ticket: Help me\nTopic: Other\nUrgency: low"),
         "assistant": (
             '{"action": "CLARIFY", '
             '"reasoning": "Message has no context about the product or problem.", '
