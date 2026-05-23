@@ -9,6 +9,11 @@ dependencies = [
     "kagglehub>=0.3",
     "typer>=0.12",
     "pyarrow>=15.0",
+    "sentence-transformers>=3.0",
+    "transformers>=4.40",
+    "torch>=2.0",
+    "ollama>=0.3",
+    "tqdm>=4.65",
 ]
 
 [project.optional-dependencies]
@@ -19,6 +24,7 @@ dev = [
 
 [project.scripts]
 prepare-data = "triage_agent.data.prepare:main"
+triage = "triage_agent.triage:main"
 
 [build-system]
 requires = ["hatchling"]
