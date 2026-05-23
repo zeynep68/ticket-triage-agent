@@ -1,15 +1,8 @@
-from typing import (
-    Literal,
-    Optional,
-)
+from typing import Literal, Optional
 
-from pydantic import (
-    BaseModel,
-    field_validator,
-    model_validator,
-)
+from pydantic import BaseModel, field_validator, model_validator
 
-TopicLiteral = Literal["Policy", "Claims", "Billing", "Technical", "Other"]
+TopicLiteral = Literal["Technical", "Billing", "Product", "Returns", "Outage", "Other"]
 UrgencyLiteral = Literal["low", "medium", "high"]
 ActionLiteral = Literal["ESCALATE", "CLARIFY", "FORWARD"]
 
