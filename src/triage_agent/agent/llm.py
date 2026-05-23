@@ -25,7 +25,9 @@ def _build_messages(text: str, topic: str, urgency: str) -> list[dict]:
     for example in FEW_SHOT_EXAMPLES:
         messages.append({"role": "user", "content": example["user"]})
         messages.append({"role": "assistant", "content": example["assistant"]})
-    messages.append({"role": "user", "content": build_user_message(text, topic, urgency)})
+    messages.append(
+        {"role": "user", "content": build_user_message(text, topic, urgency)}
+    )
     return messages
 
 
@@ -44,7 +46,10 @@ def decide(
             model=model,
             messages=messages,
             format="json",
-            options={"temperature": 0.0},
+            options={
+                "temperature": 0.0,
+                "num_predict": 512,
+            },
         )
         raw = response["message"]["content"]
         try:
