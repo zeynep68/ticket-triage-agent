@@ -32,7 +32,7 @@ def apply_preprocessing(df: pd.DataFrame) -> pd.DataFrame:
     df = df.copy()
     df["text"] = df.apply(merge_subject_body, axis=1)
     df["text"] = df["text"].apply(normalize_whitespace)
-    # df["text"] = df["text"].apply(cap_length)
+    df["text"] = df["text"].apply(cap_length)
     df["text_length"] = df["text"].str.len()
     df = df[df["text_length"] > 0].reset_index(drop=True)
     return df

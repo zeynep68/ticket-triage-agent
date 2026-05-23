@@ -98,14 +98,9 @@ def load_all_csvs(data_dir: Path) -> tuple[pd.DataFrame, pd.DataFrame]:
     missing = expected - found
     unknown = found - expected
     if missing:
-        log.warning(
-            "Expected CSV files are missing from the data directory: %s.", missing
-        )
+        log.warning("Expected files were not found in the data directory: %s.", missing)
     if unknown:
-        log.warning(
-            "Skipping CSV files not in the version mapping (unknown source): %s.",
-            unknown,
-        )
+        log.warning("Found unknown CSV files that will be ignored: %s.", unknown)
 
     for path in sorted(data_dir.glob("*.csv")):
         if path.name not in VERSION_MAPPING:
@@ -114,29 +109,16 @@ def load_all_csvs(data_dir: Path) -> tuple[pd.DataFrame, pd.DataFrame]:
         all_valid.extend(result.tickets)
         all_rejected.extend(result.rejected_rows)
         log.info(
-            "File %s yielded %d valid tickets and %d invalid rows (rows that failed schema validation).",
+            "File '%s' contributed %d valid tickets and %d rejected rows.",
             path.name,
             len(result.tickets),
             len(result.rejected_rows),
         )
 
-    log.info(
-        "Schema validation across all CSVs: %d tickets passed, %d rows failed validation.",
-        len(all_valid),
-        len(all_rejected),
-    )
-
     valid_df = pd.DataFrame([t.model_dump() for t in all_valid])
     rejected_df = pd.DataFrame(all_rejected)
 
     if not valid_df.empty:
-        pre_dedup_count = len(valid_df)
         valid_df = dedup_by_version(valid_df)
-        removed = pre_dedup_count - len(valid_df)
-        log.info(
-            "Deduplicated to %d unique tickets after removing %d duplicates that appeared across multiple dataset versions.",
-            len(valid_df),
-            removed,
-        )
 
     return valid_df, rejected_df

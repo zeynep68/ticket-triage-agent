@@ -1,4 +1,5 @@
 from typing import (
+    Literal,
     Optional,
 )
 
@@ -7,6 +8,10 @@ from pydantic import (
     field_validator,
     model_validator,
 )
+
+TopicLiteral = Literal["Policy", "Claims", "Billing", "Technical", "Other"]
+UrgencyLiteral = Literal["low", "medium", "high"]
+ActionLiteral = Literal["ESCALATE", "CLARIFY", "FORWARD"]
 
 
 class CanonicalTicket(BaseModel):
@@ -39,3 +44,45 @@ class CanonicalTicket(BaseModel):
         if self.subject == "" and self.body == "":
             raise ValueError("subject and body cannot both be empty")
         return self
+
+
+class TopicResult(BaseModel):
+    """Output of the topic classifier."""
+
+    topic: TopicLiteral
+    margin: float
+    all_scores: dict[str, float]
+
+
+class UrgencyResult(BaseModel):
+    """Output of the urgency scorer."""
+
+    level: UrgencyLiteral
+    score: float
+    signals_found: list[str]
+
+
+class AgentDecision(BaseModel):
+    """LLM's decision on what action to take for a ticket."""
+
+    action: ActionLiteral
+    reasoning: str
+    clarification_questions: list[str] = []
+
+    @field_validator("clarification_questions")
+    @classmethod
+    def cap_questions(cls, v: list[str]) -> list[str]:
+        return v[:2]
+
+
+class TriageResult(BaseModel):
+    """Final triage output for one ticket."""
+
+    ticket_id: int
+    text_snippet: str
+    topic: TopicLiteral
+    urgency: UrgencyLiteral
+    action: ActionLiteral
+    next_step: str
+    reasoning: str
+    clarification_questions: list[str] = []
