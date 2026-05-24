@@ -39,4 +39,4 @@ def stratified_sample(
             fill = remaining.sample(n=fill_n, random_state=seed)
             sampled = pd.concat([sampled, fill]).reset_index(drop=True)
 
-    return sampled
+    return sampled.sample(frac=1, random_state=seed).reset_index(drop=True)

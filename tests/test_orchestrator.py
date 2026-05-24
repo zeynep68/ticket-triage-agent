@@ -1,14 +1,19 @@
 """Orchestrator tests using mocks for the heavy dependencies.
 
-These tests verify the orchestrator's composition logic without loading
-embedding models or calling Ollama.
+These tests verify the agent loop's composition and dispatch logic without
+loading embedding models or calling Ollama.
 """
 
 from unittest.mock import patch
 
 from triage_agent.agent import orchestrator
 from triage_agent.agent.llm import LLMFailure
-from triage_agent.schemas import AgentDecision, TopicResult, UrgencyResult
+from triage_agent.schemas import (
+    AgentStep,
+    MissingInfoResult,
+    TopicResult,
+    UrgencyResult,
+)
 
 
 def _topic(label: str, margin: float = 0.3) -> TopicResult:
@@ -19,14 +24,19 @@ def _urgency(level: str, score: float = 0.5) -> UrgencyResult:
     return UrgencyResult(level=level, score=score, signals_found=[])
 
 
-def test_forward_billing_flow():
+def _terminal_step(tool: str, **args) -> AgentStep:
+    return AgentStep(thought="test", tool=tool, args=args)
+
+
+def test_direct_forward_path():
+    """Single-turn: LLM commits to forward immediately."""
     with (
         patch.object(orchestrator, "classify_topic", return_value=_topic("Billing")),
         patch.object(orchestrator, "score_urgency", return_value=_urgency("low")),
         patch.object(
             orchestrator,
-            "decide",
-            return_value=AgentDecision(action="FORWARD", reasoning="routine billing"),
+            "step",
+            return_value=_terminal_step("forward", reasoning="routine billing"),
         ),
     ):
         result = orchestrator.triage("Please resend my invoice.", ticket_id=42)
@@ -36,21 +46,51 @@ def test_forward_billing_flow():
     assert result.urgency == "low"
     assert result.action == "FORWARD"
     assert result.next_step == "FORWARD_BILLING"
-    assert result.clarification_questions == []
+    assert result.tools_used == ["forward"]
 
 
-def test_clarify_flow_includes_questions():
-    questions = ["Which product?", "What is the issue?"]
+def test_direct_faq_path():
+    """Single-turn: LLM commits to FAQ."""
     with (
-        patch.object(orchestrator, "classify_topic", return_value=_topic("Other")),
+        patch.object(orchestrator, "classify_topic", return_value=_topic("Technical")),
         patch.object(orchestrator, "score_urgency", return_value=_urgency("low")),
         patch.object(
             orchestrator,
-            "decide",
-            return_value=AgentDecision(
-                action="CLARIFY",
-                reasoning="insufficient info",
-                clarification_questions=questions,
+            "step",
+            return_value=_terminal_step(
+                "faq",
+                reasoning="how-to question",
+                faq_topic="password_reset",
+            ),
+        ),
+    ):
+        result = orchestrator.triage("How do I reset my password?", ticket_id=1)
+
+    assert result.action == "FAQ"
+    assert result.next_step == "SEND_FAQ_LINK"
+    assert result.faq_topic == "password_reset"
+
+
+def test_missing_info_then_clarify_path():
+    """Two-turn: LLM calls missing_info first, then clarifies."""
+    steps = [
+        AgentStep(thought="vague, check info", tool="missing_info", args={}),
+        _terminal_step(
+            "clarify",
+            reasoning="info confirmed missing",
+            clarification_questions=["Which product?", "What problem?"],
+        ),
+    ]
+
+    with (
+        patch.object(orchestrator, "classify_topic", return_value=_topic("Other")),
+        patch.object(orchestrator, "score_urgency", return_value=_urgency("low")),
+        patch.object(orchestrator, "step", side_effect=steps),
+        patch.object(
+            orchestrator,
+            "check_missing_info",
+            return_value=MissingInfoResult(
+                is_actionable=False, missing_aspects=["product", "problem"]
             ),
         ),
     ):
@@ -58,56 +98,48 @@ def test_clarify_flow_includes_questions():
 
     assert result.action == "CLARIFY"
     assert result.next_step == "ASK_CLARIFICATION"
-    assert result.clarification_questions == questions
-
-
-def test_escalate_flow():
-    with (
-        patch.object(orchestrator, "classify_topic", return_value=_topic("Outage")),
-        patch.object(orchestrator, "score_urgency", return_value=_urgency("high", 0.9)),
-        patch.object(
-            orchestrator,
-            "decide",
-            return_value=AgentDecision(
-                action="ESCALATE", reasoning="extended outage, business impact"
-            ),
-        ),
-    ):
-        result = orchestrator.triage(
-            "Our office has been locked out for hours.", ticket_id=99
-        )
-
-    assert result.action == "ESCALATE"
-    assert result.next_step == "ESCALATE_SUPERVISOR"
+    assert result.clarification_questions == ["Which product?", "What problem?"]
+    assert result.tools_used == ["missing_info", "clarify"]
 
 
 def test_llm_failure_falls_back():
+    """LLM error in the loop triggers the deterministic fallback."""
     with (
         patch.object(orchestrator, "classify_topic", return_value=_topic("Outage")),
         patch.object(orchestrator, "score_urgency", return_value=_urgency("high")),
         patch.object(
-            orchestrator, "decide", side_effect=LLMFailure("connection refused")
+            orchestrator, "step", side_effect=LLMFailure("connection refused")
         ),
     ):
         result = orchestrator.triage("Some urgent outage text.", ticket_id=7)
 
-    # Fallback escalates on high urgency
-    assert result.action == "ESCALATE"
+    assert result.action == "ESCALATE"  # fallback escalates on high urgency
     assert result.next_step == "ESCALATE_SUPERVISOR"
     assert "fallback" in result.reasoning.lower()
+    assert "__fallback__" in result.tools_used
 
 
-def test_llm_failure_fallback_clarifies_on_other_topic():
+def test_max_turns_exhausted_falls_back():
+    """If LLM keeps calling helpers and never terminates, fallback fires."""
+    # Always returns a helper call, never a terminal.
+    looping_step = AgentStep(thought="loop", tool="missing_info", args={})
+
     with (
         patch.object(orchestrator, "classify_topic", return_value=_topic("Other")),
         patch.object(orchestrator, "score_urgency", return_value=_urgency("low")),
-        patch.object(orchestrator, "decide", side_effect=LLMFailure("timeout")),
+        patch.object(orchestrator, "step", return_value=looping_step),
+        patch.object(
+            orchestrator,
+            "check_missing_info",
+            return_value=MissingInfoResult(is_actionable=True),
+        ),
     ):
-        result = orchestrator.triage("Hi", ticket_id=8)
+        result = orchestrator.triage("Some text.", ticket_id=8)
 
-    assert result.action == "CLARIFY"
-    assert result.next_step == "ASK_CLARIFICATION"
-    assert len(result.clarification_questions) > 0
+    assert "fallback" in result.reasoning.lower()
+    assert "__fallback__" in result.tools_used
+    # Should have called missing_info MAX_TURNS times before falling back
+    assert result.tools_used.count("missing_info") == orchestrator.MAX_TURNS
 
 
 def test_snippet_truncates_long_text():
@@ -117,8 +149,8 @@ def test_snippet_truncates_long_text():
         patch.object(orchestrator, "score_urgency", return_value=_urgency("low")),
         patch.object(
             orchestrator,
-            "decide",
-            return_value=AgentDecision(action="FORWARD", reasoning="ok"),
+            "step",
+            return_value=_terminal_step("forward", reasoning="ok"),
         ),
     ):
         result = orchestrator.triage(long_text, ticket_id=1)
