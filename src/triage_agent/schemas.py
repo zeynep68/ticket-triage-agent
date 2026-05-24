@@ -89,6 +89,23 @@ class AgentStep(BaseModel):
     tool: ToolName
     args: dict[str, Any] = {}
 
+    @model_validator(mode="after")
+    def clarify_step_requires_questions(self):
+        # Catches the failure case at the LLM-output boundary so step()'s
+        # retry loop self-corrects via the existing ValidationError handler.
+        if self.tool == "clarify":
+            questions = self.args.get("clarification_questions", [])
+            if not isinstance(questions, list):
+                raise ValueError("clarification_questions must be a list")
+            valid = [q for q in questions if isinstance(q, str) and q.strip()]
+            if not valid:
+                raise ValueError(
+                    "clarify tool requires at least one non-empty "
+                    "clarification_question in args; the customer needs "
+                    "something to answer."
+                )
+        return self
+
 
 class AgentDecision(BaseModel):
     """LLM's terminal decision on what action to take for a ticket."""
@@ -101,7 +118,21 @@ class AgentDecision(BaseModel):
     @field_validator("clarification_questions")
     @classmethod
     def cap_questions(cls, v: list[str]) -> list[str]:
-        return v[:2]
+        # Drop empty/whitespace-only entries, then cap at 2.
+        return [q for q in v if q and q.strip()][:2]
+
+    @model_validator(mode="after")
+    def clarify_requires_questions(self):
+        # CLARIFY is semantically meaningless without questions to send back.
+        # Prompt instructs the LLM to provide them, but small/quantized models
+        # sometimes drop the field - this is the safety net that triggers a
+        # retry in step() via ValidationError.
+        if self.action == "CLARIFY" and not self.clarification_questions:
+            raise ValueError(
+                "CLARIFY requires at least one clarification_question; "
+                "the customer needs to know what to answer."
+            )
+        return self
 
 
 class TriageResult(BaseModel):
