@@ -69,14 +69,24 @@ def _print_comparison(result: TriageResult, ground_truth: dict) -> None:
     """Print a per-ticket comparison of prediction vs ground truth from the dataset."""
     print(f"\n--- Ticket {result.ticket_id} ---")
     print(f"  Snippet:   {result.text_snippet[:120]}")
+
+    # Predicted topic with margin + top-3 alternatives sorted by score
+    sorted_scores = sorted(
+        result.topic_all_scores.items(), key=lambda kv: kv[1], reverse=True
+    )
+    top_scores_str = ", ".join(f"{t}={s:.2f}" for t, s in sorted_scores[:3])
     print(
-        f"  Predicted: topic={result.topic} | urgency={result.urgency} | "
+        f"  Predicted: topic={result.topic} (margin={result.topic_margin:+.2f}, "
+        f"top: {top_scores_str}) | "
+        f"urgency={result.urgency} ({result.urgency_score:.2f}) | "
         f"action={result.action} -> {result.next_step}"
     )
+
     print(
         f"  Truth:     queue={ground_truth['queue']} | "
         f"priority={ground_truth['priority']} | type={ground_truth['type']}"
     )
+    print(f"  Tools:     {' -> '.join(result.tools_used)}")
     print(f"  Reasoning: {result.reasoning}")
     if result.clarification_questions:
         print(f"  Questions: {result.clarification_questions}")

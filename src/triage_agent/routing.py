@@ -24,4 +24,6 @@ def derive_next_step(action: ActionLiteral, topic: TopicLiteral) -> str:
         return "ESCALATE_SUPERVISOR"
     if action == "CLARIFY":
         return "ASK_CLARIFICATION"
+    if action == "FAQ":
+        return "SEND_FAQ_LINK"
     return FORWARD_DESTINATIONS[topic]
