@@ -1,80 +1,79 @@
+"""LLM client for the agent loop.
+
+Each call to `step()` produces one AgentStep - either a helper tool call or
+a terminal action. The orchestrator dispatches based on the step's tool.
+"""
+
 import logging
 
 import ollama
 from pydantic import ValidationError
 
-from triage_agent.agent.prompts import (
-    FEW_SHOT_EXAMPLES,
-    SYSTEM_PROMPT,
-    build_user_message,
-)
-from triage_agent.schemas import AgentDecision
+from triage_agent.agent.prompts import FEW_SHOT_EXAMPLES, SYSTEM_PROMPT
+from triage_agent.schemas import AgentStep
 
 log = logging.getLogger(__name__)
 
 DEFAULT_MODEL = "qwen2.5:3b-instruct"
-MAX_RETRIES = 2
+MAX_PARSE_RETRIES = 2
 
 
 class LLMFailure(Exception):
-    """Raised when the LLM cannot produce a valid AgentDecision after retries."""
+    """Raised when the LLM cannot produce a valid AgentStep after retries."""
 
 
-def _build_messages(text: str, topic: str, urgency: str) -> list[dict]:
+def _seed_messages() -> list[dict]:
+    """Build the static prefix of the conversation: system + few-shot examples."""
     messages = [{"role": "system", "content": SYSTEM_PROMPT}]
     for example in FEW_SHOT_EXAMPLES:
         messages.append({"role": "user", "content": example["user"]})
         messages.append({"role": "assistant", "content": example["assistant"]})
-    messages.append(
-        {"role": "user", "content": build_user_message(text, topic, urgency)}
-    )
     return messages
 
 
-def decide(
-    text: str,
-    topic: str,
-    urgency: str,
+def step(
+    conversation: list[dict],
     model: str = DEFAULT_MODEL,
-) -> AgentDecision:
-    """Ask the LLM for a triage decision. Retries on JSON-parse failure."""
-    messages = _build_messages(text, topic, urgency)
+) -> AgentStep:
+    """Run one LLM turn and parse the response as an AgentStep.
 
+    `conversation` is the full message list including system prompt, few-shot
+    examples, and the running history of agent turns + tool results. The
+    caller appends the new user message before calling step().
+    """
     last_error: str | None = None
-    for attempt in range(MAX_RETRIES + 1):
+
+    for attempt in range(MAX_PARSE_RETRIES + 1):
         response = ollama.chat(
             model=model,
-            messages=messages,
+            messages=conversation,
             format="json",
-            options={
-                "temperature": 0.0,
-                "num_predict": 512,
-            },
+            options={"temperature": 0.0, "num_predict": 512},
         )
         raw = response["message"]["content"]
         try:
-            return AgentDecision.model_validate_json(raw)
+            return AgentStep.model_validate_json(raw)
         except ValidationError as e:
             last_error = str(e)
             log.warning(
-                "LLM produced invalid JSON on attempt %d/%d: %s",
+                "LLM produced invalid AgentStep on attempt %d/%d: %s",
                 attempt + 1,
-                MAX_RETRIES + 1,
+                MAX_PARSE_RETRIES + 1,
                 last_error,
             )
-            messages.append({"role": "assistant", "content": raw})
-            messages.append(
+            conversation.append({"role": "assistant", "content": raw})
+            conversation.append(
                 {
                     "role": "user",
                     "content": (
-                        "Your previous response was not valid JSON or did not match "
-                        "the required schema. Please respond with valid JSON only, "
-                        "matching the action/reasoning/clarification_questions shape."
+                        "Your previous response was not valid JSON for an AgentStep. "
+                        "Respond with valid JSON of the form "
+                        '{"thought": "...", "tool": "...", "args": {...}}.'
                     ),
                 }
             )
 
     raise LLMFailure(
-        f"Could not obtain valid AgentDecision after {MAX_RETRIES + 1} attempts. "
+        f"Could not obtain valid AgentStep after {MAX_PARSE_RETRIES + 1} attempts. "
         f"Last error: {last_error}"
     )

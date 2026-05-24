@@ -6,7 +6,7 @@ from sentence_transformers.util import cos_sim
 
 from triage_agent.schemas import TopicLiteral, TopicResult
 
-MODEL_NAME = "paraphrase-multilingual-MiniLM-L12-v2"
+MODEL_NAME = "BAAI/bge-m3"
 
 TOPIC_DESCRIPTIONS = {
     "Technical": "Individual user technical problems: login failures, password resets, account lockouts, application errors, single-user bugs, technical issues with industry-specific software.",
@@ -34,7 +34,9 @@ def _get_topic_embeddings():
     model = _get_model()
     labels = list(TOPIC_DESCRIPTIONS.keys())
     descriptions = list(TOPIC_DESCRIPTIONS.values())
-    embeddings = model.encode(descriptions, convert_to_tensor=True)
+    embeddings = model.encode(
+        descriptions, convert_to_tensor=True, show_progress_bar=False
+    )
     return labels, embeddings
 
 
@@ -43,7 +45,7 @@ def classify_topic(text: str) -> TopicResult:
     model = _get_model()
     labels, topic_embeddings = _get_topic_embeddings()
 
-    text_embedding = model.encode(text, convert_to_tensor=True)
+    text_embedding = model.encode(text, convert_to_tensor=True, show_progress_bar=False)
     similarities = cos_sim(text_embedding, topic_embeddings)[0].tolist()
 
     scored = sorted(zip(labels, similarities), key=lambda kv: kv[1], reverse=True)

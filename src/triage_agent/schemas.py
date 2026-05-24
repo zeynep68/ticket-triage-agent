@@ -1,10 +1,25 @@
-from typing import Literal, Optional
+from typing import Any, Literal, Optional
 
 from pydantic import BaseModel, field_validator, model_validator
 
 TopicLiteral = Literal["Technical", "Billing", "Product", "Returns", "Outage", "Other"]
 UrgencyLiteral = Literal["low", "medium", "high"]
-ActionLiteral = Literal["ESCALATE", "CLARIFY", "FORWARD"]
+ActionLiteral = Literal["ESCALATE", "CLARIFY", "FORWARD", "FAQ"]
+
+# Tools the LLM can call inside the decision loop.
+# Helpers gather information; terminals commit to an action.
+ToolName = Literal[
+    "missing_info",  # helper: check ticket completeness via LLM
+    "forward",  # terminal: route to standard team
+    "escalate",  # terminal: send to supervisor
+    "clarify",  # terminal: ask the user for more info
+    "faq",  # terminal: respond with FAQ / self-service link
+]
+
+HELPER_TOOLS: frozenset[ToolName] = frozenset({"missing_info"})
+TERMINAL_TOOLS: frozenset[ToolName] = frozenset(
+    {"forward", "escalate", "clarify", "faq"}
+)
 
 
 class CanonicalTicket(BaseModel):
@@ -55,12 +70,33 @@ class UrgencyResult(BaseModel):
     signals_found: list[str]
 
 
+class MissingInfoResult(BaseModel):
+    """Output of the missing-info helper tool."""
+
+    is_actionable: bool
+    missing_aspects: list[str] = []
+
+
+class AgentStep(BaseModel):
+    """One iteration of the agent loop.
+
+    The LLM produces this at each turn. If `tool` is a terminal action, the
+    loop ends and `args` contains the action's parameters. If `tool` is a
+    helper, the loop calls it and feeds the result back into the next step.
+    """
+
+    thought: str
+    tool: ToolName
+    args: dict[str, Any] = {}
+
+
 class AgentDecision(BaseModel):
-    """LLM's decision on what action to take for a ticket."""
+    """LLM's terminal decision on what action to take for a ticket."""
 
     action: ActionLiteral
     reasoning: str
     clarification_questions: list[str] = []
+    faq_topic: Optional[str] = None
 
     @field_validator("clarification_questions")
     @classmethod
@@ -74,8 +110,13 @@ class TriageResult(BaseModel):
     ticket_id: int
     text_snippet: str
     topic: TopicLiteral
+    topic_margin: float  # difference between top-1 and top-2 cosine similarity
+    topic_all_scores: dict[str, float]  # per-topic similarity scores
     urgency: UrgencyLiteral
+    urgency_score: float  # raw score in [0, 1]
     action: ActionLiteral
     next_step: str
     reasoning: str
     clarification_questions: list[str] = []
+    faq_topic: Optional[str] = None
+    tools_used: list[str] = []  # for traceability of the agent loop
