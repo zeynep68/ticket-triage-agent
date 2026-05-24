@@ -1,5 +1,6 @@
 import json
 import logging
+import time
 from pathlib import Path
 
 import pandas as pd
@@ -36,13 +37,17 @@ def run(
 
     results = []
     for _, row in tqdm(df.iterrows(), total=len(df), desc="Triaging"):
+        start = time.perf_counter()
         result = triage(text=row["text"], ticket_id=int(row["ticket_id"]))
+        elapsed = time.perf_counter() - start
         ground_truth = {
             "queue": _none_if_nan(row.get("queue")),
             "priority": _none_if_nan(row.get("priority")),
             "type": _none_if_nan(row.get("type")),
         }
         record = result.model_dump()
+        record["runtime_seconds"] = elapsed
+        record["text_length"] = len(row["text"])
         record["ground_truth"] = ground_truth
         results.append(record)
 
