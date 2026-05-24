@@ -28,13 +28,18 @@ SNIPPET_LENGTH = 200
 def _fallback_decision(topic: str, urgency: str) -> AgentDecision:
     """Used when the LLM loop fails or exceeds max turns.
 
-    Conservative: high-urgency tickets escalate, unclassified text asks for
-    clarification, everything else forwards.
+    Conservative: high-urgency tickets escalate, claims topic creates a claim,
+    unclassified text asks for clarification, everything else forwards.
     """
     if urgency == "high":
         return AgentDecision(
             action="ESCALATE",
             reasoning="Fallback decision (LLM unavailable): high urgency triggers conservative escalation.",
+        )
+    if topic == "Claims":
+        return AgentDecision(
+            action="CLAIM",
+            reasoning="Fallback decision (LLM unavailable): topic=Claims routes to claim creation.",
         )
     if topic == "Other":
         return AgentDecision(
@@ -58,6 +63,7 @@ def _terminal_to_decision(step_result: AgentStep) -> AgentDecision:
         "escalate": "ESCALATE",
         "clarify": "CLARIFY",
         "faq": "FAQ",
+        "claim": "CLAIM",
     }
     action = action_map[step_result.tool]
     args = step_result.args
@@ -93,6 +99,17 @@ def _run_loop(
         except LLMFailure as e:
             log.warning("LLM failure at turn %d: %s", turn, e)
             return _fallback_decision(topic, urgency), tools_used + ["__fallback__"]
+
+        # Hard guard against helper-call loops: missing_info is deterministic,
+        # so calling it twice on the same ticket is always pointless. The prompt
+        # tells the LLM this, but small models sometimes ignore it and loop
+        # until MAX_TURNS exhausts.
+        if agent_step.tool == "missing_info" and "missing_info" in tools_used:
+            log.warning(
+                "missing_info called twice at turn %d; breaking loop and falling back.",
+                turn,
+            )
+            return _fallback_decision(topic, urgency), tools_used + ["__loop_break__"]
 
         tools_used.append(agent_step.tool)
         conversation.append(

@@ -13,8 +13,8 @@ team should take for each incoming ticket.
 
 Per turn:
 - text: the ticket body (subject + body)
-- topic: pre-classified by an embedding model (one of Technical, Billing,
-  Product, Returns, Outage, Other)
+- topic: pre-classified by an embedding model (one of Policy, Claims,
+  Billing, Technical, Other)
 - urgency: pre-scored by a hybrid keyword + zero-shot classifier (low,
   medium, high)
 
@@ -45,6 +45,7 @@ completeness only.
 
 PHASE 2 - decide routing
 Pick one terminal action based on phase 1:
+- topic=Claims with a concrete loss/damage described -> CLAIM
 - complete or partial -> FORWARD (attach clarification_questions if partial)
 - explicit escalation trigger present -> ESCALATE (clarifications optional)
 - generic how-to question -> FAQ
@@ -87,6 +88,16 @@ Pick one terminal action based on phase 1:
   questions answerable from public documentation, with no customer-specific
   lookup needed. Args: {reasoning, faq_topic}.
 
+- claim: create or update an insurance claim. Use when the customer is
+  reporting damage, an accident, theft, a covered incident, or requesting
+  reimbursement for a loss. Typical signals: words like "Schaden",
+  "Unfall", "gestohlen", "kaputt", "Reparatur", "claim", "damage",
+  "incident", explicit mention of a claim number, or topic=Claims with
+  a concrete loss described. May include up to 2 optional
+  clarification_questions if claim creation needs additional info from
+  the customer (e.g. claim type, date of incident, photos).
+  Args: {reasoning, clarification_questions (optional, max 2)}.
+
 # Helper tool (call between turns when you need more information)
 
 - missing_info: check whether the ticket has enough specific information
@@ -96,6 +107,9 @@ Pick one terminal action based on phase 1:
         receiving team will need - the returned missing_aspects map
         directly to clarification_questions you should attach
   Returns {is_actionable, missing_aspects}.
+  Call AT MOST ONCE per ticket. After it returns, commit to a terminal
+  action based on what it told you - do not call missing_info again to
+  "double-check", it is deterministic and gives the same answer.
 
 # How to use this loop
 
@@ -109,16 +123,16 @@ You have at most 4 turns total. Each turn must be valid JSON of the form:
 
 {
   "thought": "brief reasoning for this turn",
-  "tool": "missing_info" | "forward" | "escalate" | "clarify" | "faq",
+  "tool": "missing_info" | "forward" | "escalate" | "clarify" | "faq" | "claim",
   "args": { ... tool-specific arguments ... }
 }
 
 Rules:
 1. Terminal actions take a `reasoning` string in args. CLARIFY requires
    1 or 2 non-empty `clarification_questions` (never empty - the customer
-   needs to know what to answer). FORWARD and ESCALATE may optionally
-   include `clarification_questions` (at most 2). FAQ takes `faq_topic`
-   and does not use clarification_questions.
+   needs to know what to answer). FORWARD, ESCALATE, and CLAIM may
+   optionally include `clarification_questions` (at most 2). FAQ takes
+   `faq_topic` and does not use clarification_questions.
 2. missing_info takes no args.
 3. Reasoning fields stay under 200 characters.
 4. Do not invent details from the ticket. If you cannot identify a target
@@ -214,16 +228,33 @@ FEW_SHOT_EXAMPLES = [
             '"Welches konkrete Problem haben Sie mit dem Vertrag?"]}}'
         ),
     },
-    # High-urgency escalation path: direct terminal.
+    # CLAIM path: customer reports concrete damage/theft -> create a claim.
     {
         "user": (
-            "Ticket: Mein Auto wurde gestohlen, brauche sofort Hilfe!\n"
-            "Topic: Other\nUrgency: high\nTurn: 1"
+            "Ticket: Mein Auto wurde gestern Nacht gestohlen. Vertragsnummer KFZ-12345. "
+            "Ich brauche eine Schadensmeldung.\n"
+            "Topic: Claims\nUrgency: high\nTurn: 1"
         ),
         "assistant": (
-            '{"thought": "Stolen vehicle + high urgency; needs supervisor immediately.", '
+            '{"thought": "Concrete theft incident with contract number; create a claim.", '
+            '"tool": "claim", '
+            '"args": {"reasoning": "Vehicle theft reported with contract number; create damage claim.", '
+            '"clarification_questions": ['
+            '"Haben Sie bereits eine Polizei-Anzeige gemacht?", '
+            '"Wann genau wurde der Diebstahl bemerkt?"]}}'
+        ),
+    },
+    # Escalation path: explicit lawyer mention triggers escalate, not just claim.
+    {
+        "user": (
+            "Ticket: Ich werde meinen Anwalt einschalten, mein Schaden vom letzten "
+            "Jahr wurde immer noch nicht reguliert.\n"
+            "Topic: Claims\nUrgency: medium\nTurn: 1"
+        ),
+        "assistant": (
+            '{"thought": "Lawyer mention + prior unresolved complaint = explicit escalation trigger.", '
             '"tool": "escalate", '
-            '"args": {"reasoning": "High-urgency theft case; routine routing insufficient."}}'
+            '"args": {"reasoning": "Lawyer threat and prior unresolved claim; supervisor needs to handle."}}'
         ),
     },
     # FAQ path: generic how-to question.
