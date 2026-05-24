@@ -31,3 +31,9 @@ def test_faq_overrides_topic():
 )
 def test_forward_routes_by_topic(topic, expected):
     assert derive_next_step("FORWARD", topic) == expected
+
+
+def test_claim_action_has_dedicated_step():
+    # CLAIM has its own next_step regardless of topic, like ESCALATE / CLARIFY / FAQ.
+    assert derive_next_step("CLAIM", "Claims") == "CREATE_OR_UPDATE_CLAIM"
+    assert derive_next_step("CLAIM", "Other") == "CREATE_OR_UPDATE_CLAIM"
