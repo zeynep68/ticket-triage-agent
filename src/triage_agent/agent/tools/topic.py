@@ -45,7 +45,9 @@ def classify_topic(text: str) -> TopicResult:
     model = _get_model()
     labels, topic_embeddings = _get_topic_embeddings()
 
-    text_embedding = model.encode(text, convert_to_tensor=True, show_progress_bar=False)
+    text_embedding = model.encode(
+        text, convert_to_tensor=True, show_progress_bar=False
+    )
     similarities = cos_sim(text_embedding, topic_embeddings)[0].tolist()
 
     scored = sorted(zip(labels, similarities), key=lambda kv: kv[1], reverse=True)
