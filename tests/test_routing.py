@@ -23,9 +23,8 @@ def test_faq_overrides_topic():
     [
         ("Technical", "FORWARD_TECHNICAL"),
         ("Billing", "FORWARD_BILLING"),
-        ("Product", "FORWARD_PRODUCT"),
-        ("Returns", "FORWARD_RETURNS"),
-        ("Outage", "FORWARD_OUTAGE"),
+        ("Policy", "FORWARD_POLICY"),
+        ("Claims", "FORWARD_CLAIMS"),
         ("Other", "FORWARD_GENERAL"),
     ],
 )
