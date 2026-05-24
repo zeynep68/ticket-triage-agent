@@ -61,14 +61,21 @@ def step(
                 MAX_PARSE_RETRIES + 1,
                 last_error,
             )
+            # Surface the specific Pydantic message so the model knows what to fix,
+            # not just "JSON was invalid". Without this, small models tend to repeat
+            # the same broken output.
+            specific_errors = "; ".join(
+                f"{'.'.join(str(p) for p in err['loc'])}: {err['msg']}"
+                for err in e.errors()
+            )
             conversation.append({"role": "assistant", "content": raw})
             conversation.append(
                 {
                     "role": "user",
                     "content": (
-                        "Your previous response was not valid JSON for an AgentStep. "
-                        "Respond with valid JSON of the form "
-                        '{"thought": "...", "tool": "...", "args": {...}}.'
+                        f"Your previous response failed validation: {specific_errors}. "
+                        "Fix the specific issue above and respond with valid JSON of "
+                        'the form {"thought": "...", "tool": "...", "args": {...}}.'
                     ),
                 }
             )

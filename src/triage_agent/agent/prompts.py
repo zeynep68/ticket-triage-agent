@@ -79,7 +79,9 @@ Pick one terminal action based on phase 1:
   the ticket is too vague to route at all (e.g. "help me", "?", "I have
   a problem"). If you can pick a team but still need extra info from the
   customer, use FORWARD with clarification_questions instead.
-  Args: {reasoning, clarification_questions}. Provide at most two.
+  Args: {reasoning, clarification_questions}. Provide at least one and
+  at most two clarification_questions - CLARIFY is meaningless without
+  questions to send back to the customer.
 
 - faq: respond with an FAQ or self-service link. Use for generic how-to
   questions answerable from public documentation, with no customer-specific
@@ -113,9 +115,10 @@ You have at most 4 turns total. Each turn must be valid JSON of the form:
 
 Rules:
 1. Terminal actions take a `reasoning` string in args. CLARIFY requires
-   `clarification_questions` (at most 2). FORWARD and ESCALATE may
-   optionally include `clarification_questions` (at most 2). FAQ takes
-   `faq_topic` and does not use clarification_questions.
+   1 or 2 non-empty `clarification_questions` (never empty - the customer
+   needs to know what to answer). FORWARD and ESCALATE may optionally
+   include `clarification_questions` (at most 2). FAQ takes `faq_topic`
+   and does not use clarification_questions.
 2. missing_info takes no args.
 3. Reasoning fields stay under 200 characters.
 4. Do not invent details from the ticket. If you cannot identify a target
