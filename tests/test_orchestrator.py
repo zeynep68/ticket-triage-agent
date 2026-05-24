@@ -105,7 +105,7 @@ def test_missing_info_then_clarify_path():
 def test_llm_failure_falls_back():
     """LLM error in the loop triggers the deterministic fallback."""
     with (
-        patch.object(orchestrator, "classify_topic", return_value=_topic("Outage")),
+        patch.object(orchestrator, "classify_topic", return_value=_topic("Technical")),
         patch.object(orchestrator, "score_urgency", return_value=_urgency("high")),
         patch.object(
             orchestrator, "step", side_effect=LLMFailure("connection refused")
@@ -119,9 +119,9 @@ def test_llm_failure_falls_back():
     assert "__fallback__" in result.tools_used
 
 
-def test_max_turns_exhausted_falls_back():
-    """If LLM keeps calling helpers and never terminates, fallback fires."""
-    # Always returns a helper call, never a terminal.
+def test_repeated_missing_info_breaks_loop():
+    """If LLM calls missing_info twice in a row, hard guard breaks the loop."""
+    # Always returns missing_info; the guard should fire on turn 2.
     looping_step = AgentStep(thought="loop", tool="missing_info", args={})
 
     with (
@@ -137,9 +137,9 @@ def test_max_turns_exhausted_falls_back():
         result = orchestrator.triage("Some text.", ticket_id=8)
 
     assert "fallback" in result.reasoning.lower()
-    assert "__fallback__" in result.tools_used
-    # Should have called missing_info MAX_TURNS times before falling back
-    assert result.tools_used.count("missing_info") == orchestrator.MAX_TURNS
+    assert "__loop_break__" in result.tools_used
+    # Should have called missing_info exactly once before the guard fired
+    assert result.tools_used.count("missing_info") == 1
 
 
 def test_snippet_truncates_long_text():

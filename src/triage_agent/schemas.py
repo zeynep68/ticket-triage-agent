@@ -2,9 +2,9 @@ from typing import Any, Literal, Optional
 
 from pydantic import BaseModel, field_validator, model_validator
 
-TopicLiteral = Literal["Technical", "Billing", "Product", "Returns", "Outage", "Other"]
+TopicLiteral = Literal["Policy", "Claims", "Billing", "Technical", "Other"]
 UrgencyLiteral = Literal["low", "medium", "high"]
-ActionLiteral = Literal["ESCALATE", "CLARIFY", "FORWARD", "FAQ"]
+ActionLiteral = Literal["ESCALATE", "CLARIFY", "FORWARD", "FAQ", "CLAIM"]
 
 # Tools the LLM can call inside the decision loop.
 # Helpers gather information; terminals commit to an action.
@@ -14,11 +14,12 @@ ToolName = Literal[
     "escalate",  # terminal: send to supervisor
     "clarify",  # terminal: ask the user for more info
     "faq",  # terminal: respond with FAQ / self-service link
+    "claim",  # terminal: create or update an insurance claim
 ]
 
 HELPER_TOOLS: frozenset[ToolName] = frozenset({"missing_info"})
 TERMINAL_TOOLS: frozenset[ToolName] = frozenset(
-    {"forward", "escalate", "clarify", "faq"}
+    {"forward", "escalate", "clarify", "faq", "claim"}
 )
 
 

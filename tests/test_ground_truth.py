@@ -13,11 +13,16 @@ from triage_agent.evaluation.ground_truth import (
     [
         ("Technical Support", "Technical"),
         ("IT Support", "Technical"),
+        ("Product Support", "Technical"),
         ("Billing and Payments", "Billing"),
         ("Account & Billing Management", "Billing"),
-        ("Product Support", "Product"),
-        ("Returns and Exchanges", "Returns"),
-        ("Service Outages and Maintenance", "Outage"),
+        ("Returns and Exchanges", "Claims"),
+        ("Service Outages and Maintenance", "Claims"),
+        ("IT & Technology/Hardware Support", "Claims"),
+        ("Health/Medical Services", "Claims"),
+        ("Sales and Pre-Sales", "Policy"),
+        ("Change Management", "Policy"),
+        ("Release Management", "Policy"),
     ],
 )
 def test_known_queues_map_correctly(queue, expected):

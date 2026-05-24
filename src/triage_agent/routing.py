@@ -3,11 +3,10 @@ from typing import get_args
 from triage_agent.schemas import ActionLiteral, TopicLiteral
 
 FORWARD_DESTINATIONS = {
-    "Technical": "FORWARD_TECHNICAL",
+    "Policy": "FORWARD_POLICY",
+    "Claims": "FORWARD_CLAIMS",
     "Billing": "FORWARD_BILLING",
-    "Product": "FORWARD_PRODUCT",
-    "Returns": "FORWARD_RETURNS",
-    "Outage": "FORWARD_OUTAGE",
+    "Technical": "FORWARD_TECHNICAL",
     "Other": "FORWARD_GENERAL",
 }
 
@@ -26,4 +25,6 @@ def derive_next_step(action: ActionLiteral, topic: TopicLiteral) -> str:
         return "ASK_CLARIFICATION"
     if action == "FAQ":
         return "SEND_FAQ_LINK"
+    if action == "CLAIM":
+        return "CREATE_OR_UPDATE_CLAIM"
     return FORWARD_DESTINATIONS[topic]
