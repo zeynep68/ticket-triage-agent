@@ -6,7 +6,7 @@ from sentence_transformers.util import cos_sim
 
 from triage_agent.schemas import TopicLiteral, TopicResult
 
-MODEL_NAME = "paraphrase-multilingual-MiniLM-L12-v2"
+MODEL_NAME = "BAAI/bge-m3"
 
 TOPIC_DESCRIPTIONS = {
     "Technical": "Individual user technical problems: login failures, password resets, account lockouts, application errors, single-user bugs, technical issues with industry-specific software.",
