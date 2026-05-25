@@ -10,7 +10,7 @@ st.set_page_config(
 
 st.title("Insurance Ticket Triage Agent")
 st.caption(
-    "Take-home prototype: classify, prioritize and route customer support tickets "
+    "Classify, prioritize and route customer support tickets "
     "using an LLM-based agentic loop."
 )
 
@@ -28,6 +28,9 @@ st.markdown(
     prediction. Includes a "random pick" button to sample any of the
     ~2000 tickets.
   - *Custom text*: paste any ticket text yourself.
+- **Evaluation Dashboard** - load the triage results JSON and explore
+  aggregate metrics: action distribution, confusion matrices, embedding
+  margins, runtime, sample disagreements.
 
 ## Architecture (TL;DR)
 

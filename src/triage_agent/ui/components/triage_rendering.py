@@ -24,7 +24,8 @@ def render_topic_section(topic: TopicResult) -> None:
     with col_label:
         st.metric("Predicted Topic", topic.topic)
     with col_margin:
-        margin_label = "near coin-flip" if topic.margin < 0.05 else "confident"
+        # Matches TOPIC_MARGIN_THRESHOLD in agent/tools/topic.py
+        margin_label = "weak separation" if topic.margin < 0.01 else "confident"
         st.metric(
             "Margin (top1 - top2)",
             f"{topic.margin:+.3f}",
