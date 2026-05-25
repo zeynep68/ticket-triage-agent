@@ -193,18 +193,20 @@ def report_topic(df: pd.DataFrame) -> None:
         )
 
     # Embedding-margin statistics: low margin indicates uncertain classification.
+    # Threshold 0.01 matches TOPIC_MARGIN_THRESHOLD in agent/tools/topic.py
+    # (the cut below which the classifier falls back to "Other").
     margins = df_t["topic_margin"].dropna()
     if not margins.empty:
-        low_margin = (margins < 0.05).sum()
+        low_margin = (margins < 0.01).sum()
         print("\nEmbedding-margin stats (top1 minus top2 cosine similarity):")
         print(
             f"  Average margin:           {margins.mean():.3f}  "
             f"(min={margins.min():.3f}, max={margins.max():.3f})"
         )
         print(
-            f"  Low-margin tickets (< 0.05): {low_margin} / {len(margins)} "
-            f"({low_margin / len(margins) * 100:.1f}%) - near coin-flip "
-            f"between top-1 and top-2 topic."
+            f"  Low-margin tickets (< 0.01): {low_margin} / {len(margins)} "
+            f"({low_margin / len(margins) * 100:.1f}%) - weak separation, "
+            f"classifier falls back to Other."
         )
 
     print("\nConfusion matrix (mapped_topic on rows, predicted on columns):")
