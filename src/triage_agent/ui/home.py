@@ -31,6 +31,10 @@ st.markdown(
 - **Evaluation Dashboard** - load the triage results JSON and explore
   aggregate metrics: action distribution, confusion matrices, embedding
   margins, runtime, sample disagreements.
+- **Data Statistics** - explore the prepared `sample.parquet` dataset:
+  language mix, queue distribution, priority levels, ticket-length
+  characteristics, and how queues map onto the insurance-context topic
+  taxonomy.
 
 ## Architecture (TL;DR)
 
