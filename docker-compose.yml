@@ -1,11 +1,11 @@
 # Two-service stack: Ollama (LLM server) + triage-agent (Python app + UI).
 #
-# First start:   docker compose up -d ollama          # pulls gemma4:e2b (~7GB)
+# First start:   docker compose up -d ollama          # pulls qwen2.5:3b-instruct (~1.9GB)
 #                docker compose up -d triage-agent    # starts the UI on :8501
 #
-# CLI tasks:     docker compose run --rm triage-agent uv run prepare-data
-#                docker compose run --rm triage-agent uv run triage --n 500
-#                docker compose run --rm triage-agent uv run pytest
+# CLI tasks:     docker compose run --rm triage-agent prepare-data
+#                docker compose run --rm triage-agent triage --n 500
+#                docker compose run --rm triage-agent pytest
 #
 # Logs:          docker compose logs -f ollama
 #                docker compose logs -f triage-agent
@@ -25,7 +25,7 @@ services:
     command: |
       "ollama serve &
        sleep 5
-       ollama pull gemma4:e2b
+       ollama pull qwen2.5:3b-instruct
        wait"
     healthcheck:
       test: ["CMD", "ollama", "list"]
@@ -48,7 +48,7 @@ services:
     volumes:
       # Bind-mount: input parquet and output JSON visible on the host.
       - ./data:/app/data
-      # Named volume: HuggingFace cache (bge-m3 + mDeBERTa, ~1GB).
+      # Named volume: HuggingFace cache (bge-m3 + mDeBERTa, ~5GB).
       - hf_cache:/root/.cache/huggingface
       # Bind-mount the host's kagglehub cache so the container reuses the
       # already-downloaded Kaggle dataset and avoids re-downloading.
@@ -57,5 +57,5 @@ services:
       - ~/.cache/kagglehub:/root/.cache/kagglehub
 
 volumes:
-  ollama_data:   # Persists the Ollama model store (~7.2GB for gemma4:e2b).
+  ollama_data:   # Persists the Ollama model store (~1.9GB for qwen2.5:3b-instruct).
   hf_cache:      # Persists HuggingFace transformer + sentence-transformer caches.

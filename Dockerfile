@@ -13,6 +13,11 @@ RUN uv sync --frozen --no-install-project --all-extras
 COPY src/ ./src/
 RUN uv sync --frozen --all-extras
 
+# Put the baked venv on PATH so `streamlit`, `pytest`, `prepare-data`, `triage`,
+# and `triage-ui` resolve directly. Avoids `uv run`, which would re-sync the
+# venv at every invocation and strip optional extras (ui, dev).
+ENV PATH="/app/.venv/bin:$PATH"
+
 # Connectivity to the Ollama sibling container (resolved by docker-compose DNS).
 ENV OLLAMA_HOST=http://ollama:11434
 
@@ -28,7 +33,7 @@ EXPOSE 8501
 # Default command starts the Streamlit UI. CLI tasks (prepare-data, triage,
 # pytest, run_eval) are run via `docker compose run --rm triage-agent <cmd>`
 # which overrides this default.
-CMD ["uv", "run", "streamlit", "run", "src/triage_agent/ui/home.py", \
+CMD ["streamlit", "run", "src/triage_agent/ui/home.py", \
      "--server.address=0.0.0.0", \
      "--server.port=8501", \
      "--server.headless=true", \
