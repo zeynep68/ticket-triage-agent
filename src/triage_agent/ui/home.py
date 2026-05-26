@@ -44,7 +44,7 @@ st.markdown(
 2. **Urgency** is scored by a hybrid: German+English keyword regex plus a
    three-class zero-shot classifier
    (`MoritzLaurer/mDeBERTa-v3-base-mnli-xnli`).
-3. **Action** is chosen by an LLM agent loop (Gemma 4 via Ollama). At each
+3. **Action** is chosen by an LLM agent loop (Qwen 2.5 3B Instruct via Ollama). At each
    turn the LLM picks between helper tool (`missing_info`) and five
    terminal actions (FORWARD / ESCALATE / CLARIFY / FAQ / CLAIM). The loop
    terminates within 4 turns or falls back to a deterministic decision.
