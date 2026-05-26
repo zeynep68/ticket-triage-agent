@@ -29,6 +29,7 @@ ui = [
 [project.scripts]
 prepare-data = "triage_agent.data.prepare:main"
 triage = "triage_agent.triage:main"
+triage-eval = "triage_agent.evaluation.run_eval:main"
 triage-ui = "triage_agent.ui.cli:main"
 
 [build-system]
