@@ -1,0 +1,16 @@
+# Python
+.venv/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+
+# Project data (bind-mounted at runtime instead of baked into image)
+data/
+
+# Version control
+.git/
+.github/
+.gitignore
+
+# Documentation that doesn't need to ship in the image
+*.md

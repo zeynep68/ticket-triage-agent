@@ -1,0 +1,61 @@
+# Two-service stack: Ollama (LLM server) + triage-agent (Python app + UI).
+#
+# First start:   docker compose up -d ollama          # pulls gemma4:e2b (~7GB)
+#                docker compose up -d triage-agent    # starts the UI on :8501
+#
+# CLI tasks:     docker compose run --rm triage-agent uv run prepare-data
+#                docker compose run --rm triage-agent uv run triage --n 500
+#                docker compose run --rm triage-agent uv run pytest
+#
+# Logs:          docker compose logs -f ollama
+#                docker compose logs -f triage-agent
+#
+# Teardown:      docker compose down        # keeps volumes (models stay cached)
+#                docker compose down -v     # drops volumes (models re-downloaded)
+
+services:
+  ollama:
+    image: ollama/ollama:latest
+    container_name: triage-ollama
+    volumes:
+      - ollama_data:/root/.ollama
+    # Pull the model on first start. Idempotent: re-pulling an already-cached
+    # model returns instantly.
+    entrypoint: ["/bin/sh", "-c"]
+    command: |
+      "ollama serve &
+       sleep 5
+       ollama pull gemma4:e2b
+       wait"
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
+
+  triage-agent:
+    build: .
+    container_name: triage-agent
+    depends_on:
+      ollama:
+        condition: service_healthy
+    ports:
+      - "8501:8501"
+    environment:
+      - OLLAMA_HOST=http://ollama:11434
+      - HF_HOME=/root/.cache/huggingface
+    volumes:
+      # Bind-mount: input parquet and output JSON visible on the host.
+      - ./data:/app/data
+      # Named volume: HuggingFace cache (bge-m3 + mDeBERTa, ~1GB).
+      - hf_cache:/root/.cache/huggingface
+      # Bind-mount the host's kagglehub cache so the container reuses the
+      # already-downloaded Kaggle dataset and avoids re-downloading.
+      # Only relevant for `prepare-data`; safe to remove if you only ever
+      # use a pre-prepared sample.parquet.
+      - ~/.cache/kagglehub:/root/.cache/kagglehub
+
+volumes:
+  ollama_data:   # Persists the Ollama model store (~7.2GB for gemma4:e2b).
+  hf_cache:      # Persists HuggingFace transformer + sentence-transformer caches.
