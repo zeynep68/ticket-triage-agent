@@ -21,10 +21,15 @@ dev = [
     "pytest>=8.0",
     "ruff>=0.5",
 ]
+ui = [
+    "streamlit>=1.32",
+    "plotly>=5.20",
+]
 
 [project.scripts]
 prepare-data = "triage_agent.data.prepare:main"
 triage = "triage_agent.triage:main"
+triage-ui = "triage_agent.ui.cli:main"
 
 [build-system]
 requires = ["hatchling"]
