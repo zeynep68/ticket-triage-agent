@@ -11,6 +11,7 @@ RUN uv sync --frozen --no-install-project --all-extras
 
 # Layer 2: source code. This invalidates only when src/ changes.
 COPY src/ ./src/
+COPY tests/ ./tests/
 RUN uv sync --frozen --all-extras
 
 # Put the baked venv on PATH so `streamlit`, `pytest`, `prepare-data`, `triage`,
