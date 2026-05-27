@@ -43,6 +43,14 @@ docker compose run --rm triage-agent triage --n 25         # triage run
 docker compose up -d triage-agent                          # streamlit ui on http://localhost:8501
 ```
 
+The container runs as root, so files written under `./data/` end up
+owned by `root:root` on the host. Reclaim ownership before running
+anything locally that writes to `data/` via:
+
+```bash
+sudo chown -R "$(id -u):$(id -g)" data/
+```
+
 ---
 
 ## Workflows
