@@ -4,5 +4,4 @@ __pycache__/
 data/raw/
 data/sample.parquet
 data/rejected.csv
-data/triage_results.json
 
