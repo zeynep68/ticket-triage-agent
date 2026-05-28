@@ -205,9 +205,9 @@ evaluation details.
 
 | Component         | Model                                     | Size    | Source      |
 | ----------------- | ----------------------------------------- | ------- | ----------- |
-| Topic embedding   | `BAAI/bge-m3`                             | ~4.3 GB | HuggingFace |
-| Urgency zero-shot | `MoritzLaurer/mDeBERTa-v3-base-mnli-xnli` | ~552 MB | HuggingFace |
-| LLM               | `qwen2.5:3b-instruct`                     | ~1.9 GB | Ollama      |
+| Topic embedding   | `BAAI/bge-m3`                             | ~2.1 GB | HuggingFace |
+| Urgency zero-shot | `MoritzLaurer/mDeBERTa-v3-base-mnli-xnli` | ~532 MB | HuggingFace |
+| LLM               | `qwen2.5:3b-instruct`                     | ~2.2 GB | Ollama      |
 
 All models are open source and run locally. No external API calls.
 
